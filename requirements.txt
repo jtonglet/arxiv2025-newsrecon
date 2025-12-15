@@ -1,0 +1,14 @@
+boto3
+botocore
+haversine
+ImageHash
+numpy
+pandas
+pillow
+pynytimes
+scipy
+spacy
+torch
+torchvision
+tqdm
+transformers
