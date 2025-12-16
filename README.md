@@ -1,6 +1,6 @@
-### Code and data for the ARR January submission "NewsRECON"
+### Code and data for the ARR January submission "NewsRECON: News article REtrieval for image CONtextualization"
 
-This anonymous repository contains the code and data for the anonymous ARR submission "NewsRECON"
+This anonymous repository contains the code and data for the anonymous ARR submission "NewsRECON: News article REtrieval for image CONtextualization"
 
 ## Abstract
 
