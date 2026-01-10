@@ -1,6 +1,8 @@
 import os
 from tqdm import tqdm
 import time
+from io import BytesIO
+import requests as rq
 from utils import *
 
 
@@ -29,26 +31,26 @@ if __name__ == "__main__":
         if 'guardian' in file:
             data = load_json('data/processed_articles/' + file)  
 
-        for d in tqdm(range(len(data))):
-            url = data[d]['image_url']
-            if url!='':
-                file_path = os.path.join("data/TARA_dataset/non_gt_img_guardian", '_'.join(url.split('/')[-2:]))
-                if not os.path.exists(file_path):
-                    #The image has already been stored in a prior run
-                    if '68x68' not in url:
-                        #The image is not a thumbnail
-                        try:
-                            scrape_image(url,file_path)
-                            data[d]['image_path'] = '_'.join(url.split('/')[-2:]) + '.png'
-                        except:
-                            data[d]['image_path'] = ""
-                else:
-                    data[d]['image_path'] = '_'.join(url.split('/')[-2:]) + '.png'
+            for d in tqdm(range(len(data))):
+                url = data[d]['image_url']
+                if url!='':
+                    file_path = os.path.join("data/TARA_dataset/non_gt_img_guardian", '_'.join(url.split('/')[-2:]))
+                    if not os.path.exists(file_path):
+                        #The image has already been stored in a prior run
+                        if '68x68' not in url:
+                            #The image is not a thumbnail
+                            try:
+                                scrape_image(url,file_path)
+                                data[d]['image_path'] = '_'.join(url.split('/')[-2:]) + '.png'
+                            except:
+                                data[d]['image_path'] = ""
+                    else:
+                        data[d]['image_path'] = '_'.join(url.split('/')[-2:]) + '.png'
 
-        #Remove all articles from the corpus for which an image could not be downloaded
-        data = [d for d in data if d['image_path']!='']
-        with open(os.path.join('data/processed_articles', file), 'w') as f:
-            json.dump(data, f, indent=4)
+            #Remove all articles from the corpus for which an image could not be downloaded
+            data = [d for d in data if d['image_path']!='']
+            with open(os.path.join('data/processed_articles', file), 'w') as f:
+                json.dump(data, f, indent=4)
                     
     
     

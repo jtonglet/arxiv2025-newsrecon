@@ -11,7 +11,6 @@ import random
 SEED = 42
 random.seed(SEED)
 
-#python preprocessing_qwen.py
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()

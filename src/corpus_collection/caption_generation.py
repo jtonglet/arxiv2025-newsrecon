@@ -11,13 +11,11 @@ import random
 SEED = 42
 random.seed(SEED)
 
-# python caption_generation.py  --input_folder data/processed_articles
-# python caption_generation.py  --input_folder data/tara_articles
-
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_folder', type=str, default='data/processed_articles', choices=['data/processed_articles', 'data/tara_articles'],
+    parser.add_argument('--input_folder', type=str, default='data/processed_articles', 
+                        choices=['data/processed_articles', 'data/tara_articles'],
                          help="Folder containing the article files")
     parser.add_argument('--model', type=str, default='qwen2.5/7B/',  help="Name of the model to run")
     parser.add_argument('--use_vllm', type=int, default = 1, help="set to 1 to use vllm for inference")

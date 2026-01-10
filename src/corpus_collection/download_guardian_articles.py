@@ -254,7 +254,7 @@ if __name__=='__main__':
 
     #Add the missing dates for 2022-2023
     limit_articles = 20
-    results = []
+    results = load_json('data/processed_articles/guardian_part2.json')
     for q in tqdm(range(len(missing_dates))):
         date_str= missing_dates[q]
         query = []
@@ -267,12 +267,12 @@ if __name__=='__main__':
             search_results[r]['pub_date'] = search_results[r]['webPublicationDate']
         results += search_results
         time.sleep(2)
-    with open('data/processed_articles/guardian_part2.json', 'a') as file:
+    with open('data/processed_articles/guardian_part2.json', 'w') as file:
         json.dump(results, file, indent=4)
         results = []
 
 
-    # Final filtering steps --> remove duplicate URLs and articles without images
+    # Final filtering steps: remove duplicate URLs and articles without images
     for file in os.listdir('data/processed_articles/'):
         if 'guardian' in file:
             guardian_data = load_json('data/processed_articles/' + file)
@@ -297,6 +297,11 @@ if __name__=='__main__':
 
                         filtered_data.append(new_entry)
                     web_urls_set.add(guardian_data[d]['web_url'])
+            
+            #OPTIONAL: it might happen that the API does not return the exact same list of articles
+            with open("data/corpus_articles_urls.txt", "r", encoding="utf-8") as f:
+                urls = set([line.strip() for line in f if line.strip()])
+            filtered_data = [d for d in filtered_data if d['web_url'] in urls]
             
             with open('data/processed_articles/' + file, 'w', encoding='utf-8') as f:
                 json.dump(filtered_data, f, indent=4, ensure_ascii=False)

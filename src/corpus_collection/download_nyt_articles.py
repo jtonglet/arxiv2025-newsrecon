@@ -10,7 +10,8 @@ from utils import *
 
 def filter_data(data):
     '''
-    use the same section names, document types, and type of material as in the TARA dataset articles
+    Filter function that keeps only the articles that have the same section names, document types, 
+    and type of material as the articles of the TARA dataset.
     '''
     section_names_in_tara = ['Business Day', 'World', 'New York', 'U.S.', 'Science', 'Education', 'Week in Review', 'Arts', 'Technology', 
                              'Multimedia/Photos', 'Automobiles', 'Sunday Review', 'Your Money', 'Crosswords & Games', 'Real Estate', 
@@ -26,6 +27,7 @@ def filter_data(data):
     return filtered_data
 
 def is_valid_date(date_string):
+    #Helper function to verify the validate of a date string
     try:
         parse(date_string)
         return True
@@ -71,7 +73,7 @@ if __name__=='__main__':
         print(f"Original length {len(data)}")
         for d in tqdm(range(len(data))):
             abstract = data[d]['abstract'].lower()
-            #Remove some articles by keywords that clearly indicate that they are generic
+            #Remove some articles based on keywords that clearly indicate that they are generic
             if 'what to watch on' not in abstract and 'what we\u2019re reading' not in abstract and 'to the editor' not in abstract and  'corrections appearing in print' not in abstract and 'a collection of links' not in abstract:     
                 if 'political news from today' not in abstract and 'lottery numbers' not in abstract and 'notable properties that have been recently' not in abstract and 'this word has appeared in' not in abstract and 'see what you know about the news' not in abstract:
                     if 'in case you need some puzzle' not in abstract and "what you need to know" not in abstract and "this week\u2019s properties are" not in abstract and 'readers react' not in abstract and 'corrections appeared in print'  not in abstract:
@@ -89,6 +91,11 @@ if __name__=='__main__':
                                         
         #Drop all duplicates in the filtered data                           
         new_data = pd.DataFrame(new_data).sort_values(by='pub_date').drop_duplicates(subset=['web_url'], keep='first').drop_duplicates(subset=['abstract'], keep='first').to_dict(orient='records')
+        #OPTIONAL: it might happen that the API does not return the exact same list of articles
+        with open("data/corpus_articles_urls.txt", "r", encoding="utf-8") as f:
+            urls = set([line.strip() for line in f if line.strip()])
+        new_data = [d for d in new_data if d['web_url'] in urls]
+        
         with open(f"data/processed_articles/{file}", "w") as output:
             json.dump(new_data, output, indent=4)
         print(f"New length {len(new_data)}")

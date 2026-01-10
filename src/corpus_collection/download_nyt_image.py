@@ -1,4 +1,6 @@
 import os
+from io import BytesIO
+import requests as rq
 from tqdm import tqdm
 import time
 from utils import *
