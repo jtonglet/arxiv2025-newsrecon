@@ -84,6 +84,7 @@ def is_valid_loc(geolocs, available_geolocs):
 
 
 def norm_name(s):
+    #Helper function to normalize strings of locations
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s\-]", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
@@ -91,6 +92,9 @@ def norm_name(s):
 
 
 def extract_loc_atoms(loc_text):
+    '''
+    Extract atomic location keywords from the article metadata
+    '''
     atoms = set()
     for seg in loc_text.split(";"):
         seg = seg.strip()
@@ -107,6 +111,7 @@ def extract_loc_atoms(loc_text):
 
 
 def build_url2loc_text_from_articles(articles_list, allowed_urls):
+    #Helper function to map article URLS to their locations
     url2loc = {}
     for a in articles_list:
         url = a.get("web_url")
@@ -122,6 +127,7 @@ def build_url2loc_text_from_articles(articles_list, allowed_urls):
 
 
 def build_url2cap_first(captions_list):
+    #Helper function to make article URL to the generated captions
     url2cap = {}
     for c in captions_list:
         url = c.get("web_url")
@@ -212,9 +218,6 @@ def get_time_hierarchy(date_str, include_full_date=True, include_year_month=True
     date_str (str): A date string in 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD' format.
     include_full_date (bool): Whether to include the full date in the hierarchy.
     include_year_month (bool): Whether to include the year-month in the hierarchy.
-    
-    Returns:
-    list: The hierarchical levels up to the century.
     """
     # Match year, year-month, or year-month-day
     date_pattern = r'\b(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?\b'

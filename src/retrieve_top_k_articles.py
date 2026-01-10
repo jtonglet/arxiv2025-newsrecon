@@ -175,6 +175,7 @@ def _ce_tag(base_ckpt, cross_head_ckpt):
     h = _safe(cross_head_ckpt or "ce_head")
     return f"{b}__{h}"
 
+
 def _ce_pair_cache_path(img_path, ce_tag):
     """One JSON file per image, contains { loc_text -> prob } for this CE ckpt tag."""
     img_key = hashlib.sha1(img_path.encode("utf-8")).hexdigest()[:16]
@@ -263,9 +264,8 @@ def encode_imgs_cached(clip, img_paths, processor, base_ckpt, biencoder_ckpt, sp
     _save_feats_and_index(feats, img_paths, "img_feats", tag)
     return feats, img_paths
 
-# -------------------------
+
 # Cross-encoder head
-# -------------------------
 class CrossEncMLP(nn.Module):
     def __init__(self, 
                  clip_base, 
@@ -402,10 +402,6 @@ def ce_probs_texts_cached(
 def _build_time_clusters_from_pool(pool_urls,  url2loc_text, url2date,
                                    Nmin=2, window_days=15,
                                    allowed_tokens = None):
-    """
-    pool_urls: list[str] top-K urls from BI
-    allowed_tokens: if provided, only clusters whose shared token in allowed_tokens are allowed.
-    """
     # per-url info
     def _parse(d): return datetime.fromisoformat(d).date()
     info = {}
@@ -561,7 +557,7 @@ def run_bi_then_time_ce_cluster_rerank(
             results[img_path] = pool_urls
             continue
 
-        # Score clusters with CE using their text ("An image taken between ... in TOKEN")
+        # Score clusters with CE using their text
         cluster_texts = [c["text"] for c in clusters]
         ce_probs = ce_probs_texts_cached(
             clip_ce=clip_ce, ce_head=ce.head, processor=processor,
@@ -612,7 +608,8 @@ def run_bi_then_ce_mul_rerank(
     """
     1) Retrieve top-K with BI encoder on captions
     2) Re-rank those K by CE_prob * BI_score
-    Returns: dict img_path -> [urls sorted by (CE*BI) desc]
+    Returns: 
+        dict img_path -> [urls sorted by (CE*BI) desc]
     """
     # BI encoder (+ caches)
     clip_bi = CLIPModel.from_pretrained(base_ckpt).to(device)
@@ -667,6 +664,7 @@ def main(args):
     allowed_urls = set(url2cap.keys())
     url2caps = load_url2caps(args.caption_roots, allowed_urls) 
 
+
     if args.method in ("frozen_clip", "biencoder"):
         results, _, _, _, _ = run_frozen_or_bi(
             args.method, img_infos, url2caps, args.top_k,
@@ -718,8 +716,7 @@ def main(args):
         tag = f"topK{args.top_k}_{args.biencoder_ckpt}_{args.ce2_ckpt}_N{args.cluster_N}_W{args.cluster_window_days}_min_clusters{args.min_clusters}"
         path = f"{root}/{args.dataset}_{args.split}_{tag}_{args.seed}.json"
     else:
-        tag = f"topK{args.top_k}_L{args.topL}_N{args.cluster_N}_W{args.cluster_window_days}_minC{args.min_clusters}_{args.biencoder_ckpt}_{args.ce1_ckpt}_{args.ce2_ckpt}"
-        path = f"{root}/{args.dataset}_{args.split}_{tag}_{args.seed}.json"   
+        pass
     with open(path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
     print(f"Saved: {path}")
@@ -727,9 +724,9 @@ def main(args):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--method", choices=["frozen_clip", "biencoder", "biencoder_then_ce_mul_rerank","biencoder_then_time_ce_cluster_rerank"], required=True)
+    ap.add_argument("--method", choices=["frozen_clip", "biencoder", "biencoder_then_ce_mul_rerank", "biencoder_then_time_ce_cluster_rerank"], required=True)
     ap.add_argument("--dataset", choices=["tara", "5pils_ooc"], default = "tara")
-    ap.add_argument("--split", choices=["dev", "test", "interest"], default="dev")
+    ap.add_argument("--split", choices=["dev", "test"], default="test")
     ap.add_argument("--task", choices=["time", "location"])
 
     # encoders
@@ -737,8 +734,7 @@ if __name__ == "__main__":
     ap.add_argument("--biencoder_ckpt", default="bi_encoder.pt") 
     ap.add_argument("--ce1_ckpt", default="cross_encoder_location.pt", help="Cross-encoder #1 ckpt (location scoring)")
     ap.add_argument("--ce2_ckpt", default="cross_encoder_event.pt", help="Cross-encoder #2 ckpt (event scoring)")
-    ap.add_argument("--operations", type=str, default="concatenation",
-                    help="Use '-' to combine: concatenation-multiplication-difference")
+    ap.add_argument("--operations", type=str, default="concatenation", help="Use '-' to combine: concatenation-multiplication-difference")
     ap.add_argument("--top_k", type=int, default=100)
 
     # time cluster

@@ -655,6 +655,6 @@ def evaluate(
     else:
         print(f"delta: {round(100 * (sum(delta_list) / max(1, len(delta_list))), 2)}")
         print(len(great_time_list))
-        print(f"GREAT_time: {round(100 * (sum(great_time_list) / max(1, len(great_time_list))), 2)}")
+        print(f"GREAT_date: {round(100 * (sum(great_time_list) / max(1, len(great_time_list))), 2)}")
 
         return round(100 * (sum(great_time_list) / max(1, len(great_time_list))))

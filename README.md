@@ -5,7 +5,7 @@
 
 This repository contains the code and data for the arXiv preprint "NewsRECON: News article REtrieval for image CONtextualization". The code is released under an **Apache 2.0** license.
 
-This code should only be used for academic non-commercial research purposes.
+This code should only be used for **academic non-commercial research purposes**.
 
 Contact person: [Jonathan Tonglet](mailto:jonathan.tonglet@kuleuven.be) 
 
@@ -14,6 +14,10 @@ Don't hesitate to send us an e-mail or report an issue, if something is broken (
 ## Abstract
 
 > Identifying when and where a news image was taken is crucial for journalists and forensic experts to produce credible stories and debunk misinformation. While many existing methods rely on reverse image search (RIS) engines, these tools often fail to return results, thereby limiting their practical applicability. In this work, we address the challenging scenario where RIS evidence is unavailable. We introduce NewsRECON, a method that links images to relevant news articles to infer their date and location from article metadata. NewsRECON leverages a corpus of over 90,000 articles and integrates: (1) a bi-encoder for retrieving event-relevant articles; (2) two cross-encoders for reranking articles by location and event consistency. Experiments on the TARA and 5Pils-OOC show that NewsRECON outperforms prior work and can be combined with a multimodal large language model to achieve new SOTA results in the absence of RIS evidence.
+
+<p align="center">
+  <img width="70%" src="assets/newsrecon.png" alt="header" />
+</p>
 
 ## Environment
 
@@ -25,18 +29,14 @@ $ conda activate newsrecon
 $ pip install -r requirements.txt
 ```
 
-<p align="center">
-  <img width="70%" src="assets/newsrecon.png" alt="header" />
-</p>
-
 
 ## Datasets preparation
 
 ### TARA
 
-The TARA dataset metadata can be accessed by following the instructions in the following [repo](https://github.com/zeyofu/TARA).
+The TARA dataset can be accessed by following the instructions in the [repo](https://github.com/zeyofu/TARA).
 
-Images can be downloaded by running the following script
+Images can be downloaded by running thisscript
 
 ```python
 python download_tara_images.py
@@ -44,7 +44,7 @@ python download_tara_images.py
 
 ### 5Pils-OOC
 
-The 5Pils-OOC dataset metadata can be accessed by following the instructions in the following [repo](https://github.com/UKPLab/naacl2025-cove).
+The 5Pils-OOC dataset can be accessed by following the instructions in the [repo](https://github.com/UKPLab/naacl2025-cove).
 
 
 
@@ -66,8 +66,6 @@ python cross_encoder_ft_event.py
 ### NewsRECON at inference time
 
 To retrieve the top-k articles given a query image at inference time, use the following scripts: 
-
-For location
 
 ```python
 # For location
@@ -92,7 +90,7 @@ python question_answering.py --dataset tara  --evidence_file YOUR_EVIDENCE_FILE_
 
 ### Optional: using the AWS celebrity rekognition API
 
-If you want to evaluate MLLMs with celebrity metadata as additional input, you need first to use the AWS celebrity rekognition API.
+If you want to evaluate MLLMs with celebrity metadata as additional input, you need first to query the AWS celebrity rekognition API.
 For this, you need to obtain your own API keys.
 
 Then, run the following script
@@ -101,7 +99,7 @@ Then, run the following script
 python celebrity_detection.py
 ```
 
-You can add the celebrity metadata during question answering as follows
+You can add the celebrity metadata by changing the prompt type during question answering
 
 ```python
 python question_answering.py --dataset tara  --prompt celebrity
@@ -109,8 +107,7 @@ python question_answering.py --dataset tara  --prompt celebrity
 
 ### Evaluation
 
-To evaluate a results json file, run the following code.
-You need to provide the file path, the dataset name (tara or 5pils-ooc), the split, the task.
+To evaluate a JSON file containing the results, run the following script, specifying the dataset name, the split, and the task.
 ks is the number of retrieved articles to consider for EM@k.
 Finally, you need to provide a valid geonames username to match predicted locations to their coordinates and hierarchies. This is required for the CODelta and GREAT evaluation metrics.
 

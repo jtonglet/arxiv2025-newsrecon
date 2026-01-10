@@ -14,7 +14,6 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='tara', choices=['tara', '5pils_ooc'], help='Choose dataset. tara or 5pils_ooc')
     parser.add_argument('--questions', type=str, default="time-location")
-    parser.add_argument('--num_instances', type=int, default=2000, help='number of query instances to run')
     parser.add_argument('--model', type=str, default='internvl3/8B/',  help="Name of the model to run")
     parser.add_argument('--evidence_file', type=str, default='',  help="Name of the folders containing the evidence to combine (- separated)")
     parser.add_argument('--num_evidence', type=int, default=3, help='Top k articles to provide from each list')
@@ -24,10 +23,10 @@ if __name__=='__main__':
 
 
     if args.dataset=='tara':
-        data = load_jsonl('data/TARA_dataset/input/gold_test.jsonl')[:args.num_instances]
+        data = load_jsonl('data/TARA_dataset/input/gold_test.jsonl')
         ground_truth_web_urls = set([d['web_url'] for d in data])
     else:
-        data = load_json('data/5pils_ooc/test.json')[::2][:args.num_instances]
+        data = load_json('data/5pils_ooc/test.json')[::2]
         ground_truth_web_urls = set()
     template = args.model
     max_tokens = args.max_tokens
@@ -153,7 +152,7 @@ if __name__=='__main__':
                                         'cost': cost
                                         })
 
-
+        #Save results
         os.makedirs('results', exist_ok=True)
         os.makedirs(f'results/{"-".join(template.split("/"))}/', exist_ok=True)
 
