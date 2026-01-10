@@ -12,8 +12,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def build_url2date(articles_list, allowed_urls):
     """
-    Map web_url -> YYYY-MM-DD (parsed from article['pub_date'] if present).
-    Accepts full ISO timestamps and trims to date.
+    Map web_url -> YYYY-MM-DD.
     """
     url2date = {}
     for a in articles_list:
@@ -105,7 +104,6 @@ def build_time_clusters_for_image(
     return clusters
 
 
-#  Pair dataset 
 class PairDSClusters(Dataset):
     def __init__(self, img_infos, sims, url_ids, gt_map, url2loc, url2date,
                  top_k=100, Nmin=2, Nwindow=7, max_negs=5):
@@ -172,10 +170,9 @@ class PairDSClusters(Dataset):
         return img, txt, y
 
 
-# Cross-encoder MLP hea
+# Cross-encoder
 class CrossEncMLP(nn.Module):
     """
-    Frozen (optionally partially unfrozen) CLIP towers.
     Head sees pooled CLIP embeddings (concatenated features per chosen operations).
     """
     def __init__(self, clip_base, hidden=[256], dropout=0.1, operations="concatenation"):
@@ -293,7 +290,8 @@ def eval_time_clusters_recall_at_1(
         if best_i in pos_cluster_idx:
             ce_hits_cov += 1
 
-    def div(a, b): return (a / b) if b else 0.0
+    def div(a, b): 
+        return (a / b) if b else 0.0
 
     # Covered-only metrics
     oracle_cov = div(covered_pos, covered)
@@ -339,6 +337,7 @@ def subset_dev(img_infos, sims, cands, frac):
     cands_sub = {img_infos[i][1]: cands[img_infos[i][1]] for i in idxs}
     return img_infos_sub, sims_sub, cands_sub
 
+
 def sample_train_balanced(ds, size_or_frac):
     if not size_or_frac or size_or_frac <= 0 or size_or_frac>=1:
         return ds
@@ -370,8 +369,8 @@ def main(args):
     random.seed(42)
 
     # Relevant articles set
-    gt_train = load_json("data/gt_articles_sets/gt_articles_tara_train.json")
-    gt_dev   = load_json("data/gt_articles_sets/gt_articles_tara_dev.json")
+    gt_train = load_json("data/relevant_articles_sets/relevant_articles_tara_train.json")
+    gt_dev   = load_json("data/relevant_articles_sets/relevant_articles_tara_dev.json")
     gt_map  = {u:set(v["time"]) for u,v in {**gt_train, **gt_dev}.items()}
 
     # Image splits
@@ -540,25 +539,21 @@ def main(args):
         r1 = ret['ce_R1']
         if r1 > best_r1 and r1 > ret['baseline_R1']:
             best_r1 = r1
-            suffix = f"{args.epochs}"
-            if args.seed != 123:
-                suffix += f"_{args.seed}"
-            model_output_path = f"clip_model/cross_encoder_event_{suffix}.pt"
+            model_output_path = f"clip_model/cross_encoder_event.pt"
             torch.save(model.head.state_dict(), model_output_path)
             print(f"saved {model_output_path}")
 
     print("Best dev R1", best_r1)
 
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--biencoder_ckpt", required = True)
-    ap.add_argument("--base_ckpt", default="openai/clip-vit-large-patch14") 
+    ap.add_argument("--base_ckpt", default="openai/clip-vit-large-patch14")
+    ap.add_argument("--biencoder_ckpt", default="bi_encoder.pt") 
     ap.add_argument("--top_k",  type=int, default=50)
     ap.add_argument("--bs",     type=int, default=128)
     ap.add_argument("--lr",     type=float, default=1e-3)
     ap.add_argument("--dropout", type=float, default=0.0)
-    ap.add_argument("--operations", type=str, default="concatenation")
+    ap.add_argument("--operations", type=str, default="concatenation-multiplication-difference")
     ap.add_argument("--weight_decay", type=float, default=1e-3)
     ap.add_argument("--epochs", type=int, default=15)
     ap.add_argument("--cache_dir", type=str, default="cache_clip_embeds")

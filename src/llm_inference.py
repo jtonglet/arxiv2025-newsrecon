@@ -37,8 +37,6 @@ def generate_answer_vllm(image_paths, prompts, tokenizer, model, max_tokens=200)
         if image_paths is None:
             inputs = [{"prompt":prompts}]
         else:
-            # print('test')
-            #VLLM only suitable right now for molmo which does not require further specific image processing
             inputs = [{"prompt":'<image>\n'+prompts, "multi_modal_data": {"image": Image.open(image_paths).convert("RGB")}}]
         outputs = model.generate(inputs, sampling_params)
         responses = outputs[0].outputs[0].text

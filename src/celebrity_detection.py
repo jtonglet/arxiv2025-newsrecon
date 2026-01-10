@@ -7,6 +7,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 from utils import *
 
+
 def build_split_infos(dataset, 
                       split
                       ):
@@ -90,7 +91,7 @@ def get_celebrities_dataset(
                 split, 
                 out_json_path):
     """
-    Main function to get the celbrities for all instances in a dataset split.
+    Main function to get the celebrities for all instances in a dataset split.
     """
     #Prepare the dataset
     infos = build_split_infos(dataset_key, split, n_instances=1644)

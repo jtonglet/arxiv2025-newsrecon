@@ -734,9 +734,9 @@ if __name__ == "__main__":
 
     # encoders
     ap.add_argument("--base_ckpt", default="openai/clip-vit-large-patch14") 
-    ap.add_argument("--biencoder_ckpt", default="base_model") 
-    ap.add_argument("--ce1_ckpt", default=None, help="Cross-encoder #1 ckpt (location scoring)")
-    ap.add_argument("--ce2_ckpt", default=None, help="Cross-encoder #2 ckpt (event scoring)")
+    ap.add_argument("--biencoder_ckpt", default="bi_encoder.pt") 
+    ap.add_argument("--ce1_ckpt", default="cross_encoder_location.pt", help="Cross-encoder #1 ckpt (location scoring)")
+    ap.add_argument("--ce2_ckpt", default="cross_encoder_event.pt", help="Cross-encoder #2 ckpt (event scoring)")
     ap.add_argument("--operations", type=str, default="concatenation",
                     help="Use '-' to combine: concatenation-multiplication-difference")
     ap.add_argument("--top_k", type=int, default=100)

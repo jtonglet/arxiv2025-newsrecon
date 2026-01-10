@@ -129,7 +129,6 @@ def _search_location(name, username, max_results = 5, sleep= 3):
 
 
 def _coerce_hierarchy_to_list(raw):
-    #In some cases, the list saved from geonames is a string. In that case, we need to convert it back to a string
     if isinstance(raw, list):
         seq = raw
     elif isinstance(raw, str):
@@ -487,9 +486,7 @@ def _time_units(date_str):
         return dict(century=century, decade=decade, year=year, month=month, day=day)
     except Exception:
         return dict(century=None, decade=None, year=None, month=None, day=None)
-
-
-
+    
 
 def _unit_score(gu, pu, unit):
     if gu is None or pu is None:
@@ -539,7 +536,6 @@ def evaluate(
     for f in sorted(os.listdir("processed_articles")):
         if dataset=='tara':
             #Only remove 2022, 2023, and Guardian part 2 if it is TARA
-            #Important to have two separate Guardian files
             if ('2022' in f) or ('2023' in f) or ('guardian_part2' in f) :
                 continue
         if f.endswith(".json"):
@@ -565,8 +561,6 @@ def evaluate(
     results_obj = None
 
     results_obj = load_json(results_file)
-    # print(rtype)
-
 
     # accumulators
     em_at = {k: [] for k in ks}
@@ -627,7 +621,7 @@ def evaluate(
             else:
                 great_geo_list.append(great_geo_score(gt, top1, geonames_user))
                 ex_f1.append(example_f1_location(gt, top1, geonames_user))
-                co, hl = codelta_from_strings(top1, gt, geonames_user), hldelta_from_strings(top1, gt, geonames_user)
+                co = codelta_from_strings(top1, gt, geonames_user)
                 co_list.append(co)
         else:
             if scores["EM@1"] == 1:
@@ -659,7 +653,7 @@ def evaluate(
         print(f"GREAT_geo: {round(100 * (sum(great_geo_list) / max(1, len(great_geo_list))), 2)}")
         return round(100 * (sum(great_geo_list) / max(1, len(great_geo_list))))
     else:
-        print(f"delta: {round(100 * (sum(delta_list) / max(1, len(delta_list))), 2)} | year_dist: {round(sum(year_dist_list) / max(1, len(year_dist_list)), 3)}")
+        print(f"delta: {round(100 * (sum(delta_list) / max(1, len(delta_list))), 2)}")
         print(len(great_time_list))
         print(f"GREAT_time: {round(100 * (sum(great_time_list) / max(1, len(great_time_list))), 2)}")
 

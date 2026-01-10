@@ -1,8 +1,4 @@
-from transformers import AutoModel, AutoTokenizer, BitsAndBytesConfig
-from transformers import AutoProcessor
-from transformers import AutoModelForCausalLM
-
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import AutoModel, AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM, AutoProcessor
 import torch
 
 
@@ -15,7 +11,6 @@ def loader_llm_default(model_path):
 
 def loader_vllm(model_path):
     from vllm import LLM
-    # print(model_path)
     model = LLM(model_path,
                 tokenizer= model_path,
                 dtype=torch.bfloat16,
@@ -46,6 +41,7 @@ def loader_internvl3(model_path):
             device_map="auto").eval()
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, use_fast=False)
     return model, tokenizer
+
 
 def loader_qwen25vl(model_path):
     from transformers import Qwen2_5_VLForConditionalGeneration

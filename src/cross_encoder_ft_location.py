@@ -254,8 +254,8 @@ def sample_train_balanced(ds, size_or_frac):
 def main(args):
     random.seed(42)
 
-    gt_train = load_json("data/gt_articles_sets/gt_articles_tara_train.json")
-    gt_dev   = load_json("data/gt_articles_sets/gt_articles_tara_dev.json")
+    gt_train = load_json("data/relevant_articles_sets/relevant_articles_tara_train.json")
+    gt_dev   = load_json("data/relevant_articles_sets/relevant_articles_tara_dev.json")
     gt_map  = {u:set(v["location"]) for u,v in {**gt_train, **gt_dev}.items()}
 
     # Image splits
@@ -417,21 +417,17 @@ def main(args):
         r1 = ret['rerank_global']['R@1']
         if r1 > best_r1 and r1 >= ret['baseline_global']['R@1']:
             best_r1 = r1
-            suffix = f"{args.epochs}"
-            if args.seed != 123:
-                suffix += f"_{args.seed}"
-            model_output_path = f"clip_model/cross_encoder_location_{suffix}.pt"
+            model_output_path = f"clip_model/cross_encoder_location.pt"
 
             torch.save(model.head.state_dict(), model_output_path)
             print(f"saved {model_output_path}")
 
     print("Best dev R@1:", best_r1)
 
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--base_ckpt", default="openai/clip-vit-large-patch14") 
-    ap.add_argument("--biencoder_ckpt", required=True)
+    ap.add_argument("--biencoder_ckpt", default="bi_encoder.pt")
     ap.add_argument("--top_k",  type=int, default=20)
     ap.add_argument("--bs",     type=int, default=128)
     ap.add_argument("--lr",     type=float, default=1e-3)

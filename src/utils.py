@@ -1,9 +1,6 @@
 from PIL import Image
-import requests as rq
-from io import BytesIO
 import json
 import re
-import ast
 import os 
 import random
 import numpy as np
@@ -20,6 +17,7 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 def seed_everything(seed = 123):
+    #set random seed
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -29,10 +27,14 @@ def seed_everything(seed = 123):
     torch.backends.cudnn.benchmark = False
 
 def clean(s):
+    #Helper function to clean a string from unnecessary white spaces
     return " ".join(str(s).split()).strip()
 
 
 def load_jsonl(file_path):
+    '''
+    Load a jsonl file
+    '''
     data = []
     with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -50,13 +52,18 @@ def load_json(file_path):
 
 
 def save_json(obj, p):
+    '''
+    Save json file
+    '''
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2)
 
 
 def is_valid_loc(geolocs, available_geolocs):
-    #Need to standardize first certain names that have a lot of variable
+    '''
+    Verify that a location keyword is valid
+    '''
     standard_mapping = {
         'united states': 'usa',
         'united states of america': 'usa',
@@ -168,20 +175,20 @@ def save_feats(cache_dir, key, feats_np, ids_ordered, extra_meta=None):
 def extract_first_list(text):
     """
     Extract the first list that appears as text within a given string and convert it to a Python list.
+    This is used in caption generation, in the case that the Qwen outputs more than one list of captions.
     """
     # Regular expression to find a list in the format [item1, item2, ...]
     delimiters = ["', '", '", "', '\', "', '", \'', ', \\']
     pattern = '|'.join(map(re.escape, delimiters))
     text =text.replace('[Name]', '').replace('[name]', '')
-    text = text.split("]")[0].split("\n")[0]#.split(" News image captions:")[0].split("\n")[0].split(" News article headline:")[0]
+    text = text.split("]")[0].split("\n")[0]
 
     l = [cap.replace("'","").replace("[","").replace("]", "") for cap in re.split(pattern, text)]
     return l
 
 
-
 def get_article_content(data, source='nyt'):
-    
+    # Get the content of an article
     if source=='nyt':
         article = data['abstract'] + '\n'
         if data['abstract']!= data['snippet']:
@@ -195,22 +202,6 @@ def get_article_content(data, source='nyt'):
         if 'body' in data['fields'].keys():
             article += data['fields']['body'] + '\n'
     return article
-
-
-def extract_list(input_string):
-    try:
-        # Use ast.literal_eval to safely evaluate the part of the string that looks like a Python list
-        start = input_string.find("[")
-        end = input_string.find("]", start) + 1  # Include the closing bracket
-        if start != -1 and end != -1:
-            # Extract the substring that looks like a list
-            list_string = input_string[start:end]
-            extracted_list = ast.literal_eval(list_string)
-            if isinstance(extracted_list, list):
-                return extracted_list
-    except (SyntaxError, ValueError):
-        pass
-    return None
 
 
 def get_time_hierarchy(date_str, include_full_date=True, include_year_month=True):
@@ -241,15 +232,15 @@ def get_time_hierarchy(date_str, include_full_date=True, include_year_month=True
     # Initialize the hierarchy
     hierarchy = []
     
-    # Full date (if day is provided and requested)
+    # Full date
     if day and include_full_date:
         hierarchy.append(f"{year}-{month}-{day}")
     
-    # Year-month (if month is provided and requested)
+    # Year-month
     if month and include_year_month:
         hierarchy.append(f"{year}-{month}")
     
-    # Year (always included)
+    # Year
     hierarchy.append(str(year))
     
     # Decade
@@ -264,7 +255,7 @@ def get_time_hierarchy(date_str, include_full_date=True, include_year_month=True
     return hierarchy
 
 
-#  encoders
+# encoders
 @torch.no_grad()
 def encode_caps_for_urls(model, urls, url2cap_map, processor, bs=256):
     feats, ids = [], []
@@ -277,6 +268,7 @@ def encode_caps_for_urls(model, urls, url2cap_map, processor, bs=256):
         ids.extend(urls[s:s+bs])
     feats = F.normalize(torch.cat(feats), dim=-1)
     return feats, ids
+
 
 @torch.no_grad()
 def encode_imgs_oneclip(model, img_infos, processor, bs=128):
@@ -304,6 +296,7 @@ def cached_encode_caps_for_urls(clip_model, urls, url2cap_map, processor, bs, ca
     save_feats(cache_dir, key, feats_np, ids, extra_meta={"type": "caps"})
     return feats, ids
 
+
 @torch.no_grad()
 def cached_encode_imgs(clip_model, img_infos, processor, bs, cache_dir, ckpt_name, model_id, tag, recompute_cache):
     ids_for_hash = [(p, u) for (p, u) in img_infos]
@@ -318,6 +311,7 @@ def cached_encode_imgs(clip_model, img_infos, processor, bs, cache_dir, ckpt_nam
     save_feats(cache_dir, key, feats_np, ids, extra_meta={"type": tag})
     return feats, ids
 
+
 def get_pos_weight(ds):
     base = ds.dataset.items if isinstance(ds, torch.utils.data.Subset) else ds.items
     idxs = ds.indices if isinstance(ds, torch.utils.data.Subset) else range(len(ds))
@@ -326,35 +320,8 @@ def get_pos_weight(ds):
     w = (n_neg / max(1, n_pos)) if n_pos > 0 else 1.0
     return torch.tensor([w], dtype=torch.float32)
 
-# Image processing
 
-
-def resize_image(image_path, size=(224, 224)):
-    image = Image.open(image_path)
-    resized_image = image.resize(size)
-    return resized_image
-
-
-def scrape_image(url,file_path):
-    '''
-    Scrape an image given its url and store it locally as a png file.
-    '''
-    headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-    try:
-        req = rq.get(url, stream=True, timeout=(10,10), headers=headers)
-    except Exception as e:
-        print(e)
-        return None
-    if req.status_code == 200 and 'image' in req.headers.get('Content-Type', ''):
-        image_content = req.content
-        image = Image.open(BytesIO(image_content))
-        image.verify()
-        with Image.open(BytesIO(image_content)) as img:
-            file_path = file_path
-            img.save(file_path + '.png')
-
-
-
+# Image processing functions for InternVL models
 def build_transform(input_size):
     MEAN, STD = IMAGENET_MEAN, IMAGENET_STD
     transform = T.Compose([
@@ -417,6 +384,7 @@ def dynamic_preprocess(image, min_num=1, max_num=12, image_size=448, use_thumbna
         thumbnail_img = image.resize((image_size, image_size))
         processed_images.append(thumbnail_img)
     return processed_images
+
 
 def load_image_internvl3(image_file, input_size=448, max_num=12):
     image = Image.open(image_file).convert('RGB')

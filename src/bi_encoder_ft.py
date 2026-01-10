@@ -204,16 +204,13 @@ def encode_features(model, items, url_to_caption, processor, device, batch_size=
 
 
 def evaluate_retrieval(model, dev_img_infos, candidate_urls, url_to_input, imgid_to_posurls, 
-                       processor, device, input_mode="caption", resolver=None, k_vals=(1, 5, 10, 20, 50, 100)):
+                       processor, device, k_vals=(1, 5, 10, 20, 50, 100)):
     img_feats, img_ids = encode_features(model, dev_img_infos, url_to_input, processor, device, as_text=False)
     img_feats = F.normalize(img_feats, dim=-1)
 
-    if input_mode == "imgimg":
-        assert resolver is not None, "resolver required for imgimg evaluation"
-        txt_feats, cap_ids = encode_article_images(model, candidate_urls, resolver, processor, bs=128)
-    else:
-        txt_feats, cap_ids = encode_features(model, candidate_urls, url_to_input, processor, device, as_text=True)
-        txt_feats = F.normalize(txt_feats, dim=-1)
+
+    txt_feats, cap_ids = encode_features(model, candidate_urls, url_to_input, processor, device, as_text=True)
+    txt_feats = F.normalize(txt_feats, dim=-1)
 
     sims = img_feats @ txt_feats.T
 
@@ -232,7 +229,7 @@ def evaluate_retrieval(model, dev_img_infos, candidate_urls, url_to_input, imgid
 
 def build_url_to_article_relpath():
     records = []
-    for file in ['data/image_retrieval_nyt_corpora.json', 'data/processed_articles/guardian.json']:
+    for file in os.listdir('data/processed_articles'):
         records += load_json(file)
     # Keep only entries that have both keys
     return {
@@ -252,6 +249,7 @@ class ArticleImageResolver:
         if not rel:
             return None
         for d in self.img_dirs:
+            #Search if image exists
             p = os.path.join(d, rel)
             if os.path.exists(p):
                 try:
@@ -275,7 +273,6 @@ if __name__=='__main__':
     p.add_argument("--m_queries", type=int, default=64, help="number of query image per batch")
     p.add_argument("--grad_accum", type=int, default=1)
     p.add_argument("--seed", type=int, default=123)
-    p.add_argument("--input_mode", choices=["caption","abstract", "imgimg"], default="caption")
 
 
     args = p.parse_args()
@@ -288,8 +285,8 @@ if __name__=='__main__':
     for i, inst in enumerate(dev):
         inst['orig_idx'] = i
     train = [train[t] for t in range(len(train)) if t!=8569]
-    gt_articles_train = load_json('data/gt_articles_sets/gt_articles_tara_train.json')
-    gt_articles_dev = load_json('data/gt_articles_sets/gt_articles_tara_dev.json')
+    gt_articles_train = load_json('data/relevant_articles_sets/relevant_articles_tara_train.json')
+    gt_articles_dev = load_json('data/relevant_articles_sets/relevant_articles_tara_dev.json')
     train = [q for q in train if len(gt_articles_train[q['web_url']]['time']) > 0]
     dev   = [q for q in dev   if len(gt_articles_dev[q['web_url']]['time']) > 0]
 
@@ -358,23 +355,17 @@ if __name__=='__main__':
 
 
     # Build url to "input" (text OR image) for TRAIN and EVAL corpora
-    if args.input_mode == "caption":
-        url_to_input = {
-            u: input_texts[idxs[0]]
-            for u, idxs in article_caption_indices.items()
-            if u in articles_urls_set and len(idxs) > 0
-        }
-        eval_url_to_input = {
-            u: input_texts[idxs[0]]
-            for u, idxs in article_caption_indices.items()
-            if u in eval_articles_urls_set and len(idxs) > 0
-        }
-    elif args.input_mode == "abstract":
-        url_to_input = _build_url_to_abstract_or_headline(articles)
-        eval_url_to_input = _build_url_to_abstract_or_headline(eval_articles)
-    else:
-        url_to_input = {a["web_url"]: a['abstract'] if "abstract" in a else a['fields']['headline']  for a in articles}
-        eval_url_to_input = {a["web_url"]: a['abstract'] if "abstract" in a else a['fields']['headline'] for a in eval_articles}
+    url_to_input = {
+        u: input_texts[idxs[0]]
+        for u, idxs in article_caption_indices.items()
+        if u in articles_urls_set and len(idxs) > 0
+    }
+    eval_url_to_input = {
+        u: input_texts[idxs[0]]
+        for u, idxs in article_caption_indices.items()
+        if u in eval_articles_urls_set and len(idxs) > 0
+    }
+
     candidate_urls         = sorted(url_to_input.keys())
     candidate_urls_dev_set = sorted(eval_url_to_input.keys())
 
@@ -431,8 +422,7 @@ if __name__=='__main__':
         m_queries,                 
         total_bs,                   
         resolver,                   
-        rng=None,                  
-        input_mode="caption"
+        rng=None
     ):
         """
         Builds a collate fn that:
@@ -444,29 +434,45 @@ if __name__=='__main__':
             rng = ds.rng
 
         def _collate(batch):
-            if input_mode != "imgimg":
-                imgs, caps, img_urls = [], [], []
-                used_cap_urls = set()
-                chosen_img_urls = set()
-                chosen_pos = {}           # img_url -> chosen pos url
-                forbidden = set()         # union of GT sets of chosen query images
+            imgs, caps, img_urls = [], [], []
+            used_cap_urls = set()
+            chosen_img_urls = set()
+            chosen_pos = {}           # img_url -> chosen pos url
+            forbidden = set()         # union of GT sets of chosen query images
 
-                def _add_query_item(item, pos_url):
-                    img = Image.open(item["img_path"]).convert("RGB")
-                    imgs.append(img)
-                    caps.append(ds.url2cap[pos_url])
-                    img_urls.append(item["img_url"])
-                    chosen_img_urls.add(item["img_url"])
-                    chosen_pos[item["img_url"]] = pos_url
-                    used_cap_urls.add(pos_url)
-                    forbidden.update(item["pos_urls"])
+            def _add_query_item(item, pos_url):
+                img = Image.open(item["img_path"]).convert("RGB")
+                imgs.append(img)
+                caps.append(ds.url2cap[pos_url])
+                img_urls.append(item["img_url"])
+                chosen_img_urls.add(item["img_url"])
+                chosen_pos[item["img_url"]] = pos_url
+                used_cap_urls.add(pos_url)
+                forbidden.update(item["pos_urls"])
 
-                # 1) seed with M query images (non-conflicting positives)
-                pool = batch[:]  # operate on a copy
-                rng.shuffle(pool)
-                for it in pool:
+            # 1) seed with M query images (non-conflicting positives)
+            pool = batch[:]  # operate on a copy
+            rng.shuffle(pool)
+            for it in pool:
+                if len(chosen_img_urls) >= m_queries:
+                    break
+                free = sorted(it["pos_urls"] - forbidden)
+                if not free:
+                    continue
+                u = rng.choice(free)
+                if u in used_cap_urls:
+                    continue
+                _add_query_item(it, u)
+
+            # 1b) if not enough, pull more from whole ds
+            if len(chosen_img_urls) < m_queries:
+                pool2 = ds.items[:]
+                rng.shuffle(pool2)
+                for it in pool2:
                     if len(chosen_img_urls) >= m_queries:
                         break
+                    if it["img_url"] in chosen_img_urls:
+                        continue
                     free = sorted(it["pos_urls"] - forbidden)
                     if not free:
                         continue
@@ -475,95 +481,28 @@ if __name__=='__main__':
                         continue
                     _add_query_item(it, u)
 
-                # 1b) if not enough, pull more from whole ds
-                if len(chosen_img_urls) < m_queries:
-                    pool2 = ds.items[:]
-                    rng.shuffle(pool2)
-                    for it in pool2:
-                        if len(chosen_img_urls) >= m_queries:
-                            break
-                        if it["img_url"] in chosen_img_urls:
-                            continue
-                        free = sorted(it["pos_urls"] - forbidden)
-                        if not free:
-                            continue
-                        u = rng.choice(free)
-                        if u in used_cap_urls:
-                            continue
-                        _add_query_item(it, u)
+            # 3) fill up with random negatives (article images only)
+            if len(imgs) < total_bs:
+                rand_pool = [u for u in ds.rand_neg_pool if (u not in used_cap_urls) and (u not in forbidden)]
+                rng.shuffle(rand_pool)
+                r = 0
+                while len(imgs) < total_bs and r < len(rand_pool):
+                    u = rand_pool[r]
+                    r += 1
+                    art_img = resolver.open(u)
+                    if art_img is None:
+                        #Do not use the article if it does not have an image
+                        continue
+                    imgs.append(art_img)
+                    caps.append(ds.url2cap[u])
+                    img_urls.append(f"[article]{u}")
+                    used_cap_urls.add(u)
 
-                # 3) fill up with random negatives (article images only)
-                if len(imgs) < total_bs:
-                    rand_pool = [u for u in ds.rand_neg_pool if (u not in used_cap_urls) and (u not in forbidden)]
-                    rng.shuffle(rand_pool)
-                    r = 0
-                    while len(imgs) < total_bs and r < len(rand_pool):
-                        u = rand_pool[r]
-                        r += 1
-                        art_img = resolver.open(u)
-                        if art_img is None:
-                            continue
-                        imgs.append(art_img)
-                        caps.append(ds.url2cap[u])
-                        img_urls.append(f"[article]{u}")
-                        used_cap_urls.add(u)
+            if len(imgs) > total_bs:
+                imgs, caps, img_urls = imgs[:total_bs], caps[:total_bs], img_urls[:total_bs]
 
-                if len(imgs) > total_bs:
-                    imgs, caps, img_urls = imgs[:total_bs], caps[:total_bs], img_urls[:total_bs]
-
-                return imgs, caps, img_urls
-            else:
-                q_imgs, a_imgs, img_urls = [], [], []
-                used_cap_urls = set()
-                chosen_img_urls = set()
-                forbidden = set()
-
-                def _add_pair(item, pos_url):
-                    art = resolver.open(pos_url)
-                    if art is None:
-                        return False
-                    q_imgs.append(Image.open(item["img_path"]).convert("RGB"))
-                    a_imgs.append(art)
-                    img_urls.append(item["img_url"])
-                    used_cap_urls.add(pos_url)
-                    chosen_img_urls.add(item["img_url"])
-                    forbidden.update(item["pos_urls"])
-                    return True
-
-                # seed queries: take as many as we can from the batch
-                pool = batch[:]
-                rng.shuffle(pool)
-                for it in pool:
-                    if len(q_imgs) >= total_bs: break
-                    free = sorted(it["pos_urls"] - forbidden)
-                    while free:
-                        u = rng.choice(free)
-                        free.remove(u)
-                        if u in used_cap_urls:
-                            continue
-                        if _add_pair(it, u):
-                            break
-
-                # if not enough, pull from full dataset deterministically
-                if len(q_imgs) < total_bs:
-                    for it in ds.items:
-                        if len(q_imgs) >= total_bs: break
-                        if it["img_url"] in chosen_img_urls: 
-                            continue
-                        free = sorted(it["pos_urls"] - forbidden)
-                        while free and len(q_imgs) < total_bs:
-                            u = rng.choice(free)
-                            free.remove(u)
-                            if u in used_cap_urls:
-                                continue
-                            if _add_pair(it, u):
-                                break
-
-                # trim
-                if len(q_imgs) > total_bs:
-                    q_imgs, a_imgs, img_urls = q_imgs[:total_bs], a_imgs[:total_bs], img_urls[:total_bs]
-
-                return q_imgs, a_imgs, img_urls
+            return imgs, caps, img_urls
+    
         return _collate
 
 
@@ -573,8 +512,7 @@ if __name__=='__main__':
         m_queries,
         resolver,
         torch_gen,
-        seed,
-        input_mode='caption'
+        seed
     ):
         def _seed_worker(worker_id):
             worker_seed = seed + worker_id
@@ -586,8 +524,7 @@ if __name__=='__main__':
             m_queries=m_queries,
             total_bs=batch_size,
             resolver=resolver,
-            rng=ds.rng,
-            input_mode=input_mode
+            rng=ds.rng
         )
 
         return DataLoader(
@@ -612,8 +549,7 @@ if __name__=='__main__':
         resolver=article_resolver,
         torch_gen=torch_gen,
         seed=args.seed,
-        hard_neg_fetcher=None,
-        input_mode = args.input_mode
+        hard_neg_fetcher=None
     )
     img2pos = {it["img_url"]: set(it["pos_urls"]) for it in train_ds.items}
 
@@ -634,7 +570,7 @@ if __name__=='__main__':
     start_time = time.time()
     recalls = evaluate_retrieval(model, dev_img_infos, candidate_urls_dev_set, eval_url_to_input,
                                 imgid_to_posurls, processor, device,
-                                input_mode=args.input_mode, resolver=article_resolver)
+                                 resolver=article_resolver)
     elapsed = time.time() -start_time
     print(f"Full dev evaluation took {elapsed:.1f} seconds")
     print("Full corpus recall")
@@ -704,7 +640,7 @@ if __name__=='__main__':
 
         # evaluate
         start_time = time.time()
-        recalls = evaluate_retrieval(model, dev_img_infos, candidate_urls_dev_set, eval_url_to_input, imgid_to_posurls, processor, device, input_mode=args.input_mode, resolver=article_resolver)
+        recalls = evaluate_retrieval(model, dev_img_infos, candidate_urls_dev_set, eval_url_to_input, imgid_to_posurls, processor, device, resolver=article_resolver)
         elapsed = time.time() -start_time
         print(f"Full dev evaluation took {elapsed:.1f} seconds")
         print("Full corpus recall")
@@ -713,11 +649,7 @@ if __name__=='__main__':
         if recalls[f'R@{args.recall_threshold}'] > best_r:
             #A better model has been obtained this epoch
             best_r = recalls[f'R@{args.recall_threshold}']
-            output_path = f"clip_model/best_bi_encoder_{args.base_ckpt.split('/')[1]}_input_mode_{args.input_mode}_num_cap_{args.num_cap}"
-            output_path += f'_{args.epochs}_m_queries_{args.m_queries}'
-            if args.seed != 123:
-                output_path += f'_{args.seed}'
-            output_path += '.pt'
+            output_path = f"clip_model/bi_encoder.pt"
             torch.save(model.state_dict(), output_path)
             print(f"  → Saved {output_path}")
 

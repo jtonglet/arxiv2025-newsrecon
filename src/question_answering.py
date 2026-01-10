@@ -19,8 +19,7 @@ if __name__=='__main__':
     parser.add_argument('--evidence_file', type=str, default='',  help="Name of the folders containing the evidence to combine (- separated)")
     parser.add_argument('--num_evidence', type=int, default=3, help='Top k articles to provide from each list')
     parser.add_argument('--max_tokens', type=int, default=256,  help="Max number of generated tokens")
-    parser.add_argument('--prompt', type=str, default='base', choices=['base', 'detective', 'celebrity'])
-    parser.add_argument('--celebs_json', type=str, default='', help='Optional path to Rekognition results json. If empty, will pick a dataset default.')
+    parser.add_argument('--prompt', type=str, default='base', choices=['base', 'celebrity'])
     args = parser.parse_args()
 
 
@@ -54,7 +53,6 @@ if __name__=='__main__':
             celebs_by_image = {}
 
     
-
     #Load the articles
     ref_articles = []
     article_paths = 'data/processed_articles'
@@ -65,7 +63,6 @@ if __name__=='__main__':
     web_urls_to_text_articles = {ref_articles[i]['web_url']:i for i in range(len(ref_articles))}
 
 
-    #Load multimodal retrieval results      
     dataset_path = f"tara_test" if args.dataset=='tara' else "5pils_ooc_test"
     image_root = "data/TARA_dataset/img/" if args.dataset =='tara' else "data/5pils_ooc"
     articles = []
@@ -103,12 +100,9 @@ if __name__=='__main__':
                 })
 
 
-    if template in ['GPT4V', 'GPT4o', 'gemini-1.5-flash', 'gemini-1.5-pro']:
-        model, tokenizer = template, ''
-    else:
-        model, tokenizer = load_model(template, use_vllm=0) 
+
+    model, tokenizer = load_model(template, use_vllm=0) 
     #Main loop through the models
-    pred_locations = {}
     for question in questions:
         model_answers = []
         for d in tqdm(range(len(data))):
@@ -149,7 +143,6 @@ if __name__=='__main__':
                             predicted_answer_set = get_time_hierarchy(predicted_answer)
                         else:
                             predicted_answer_set = predicted_answer.lstrip().split(',')
-                            pred_locations[im_path] = predicted_answer
                     else:
                         predicted_answer_set = []        
                     model_answers.append({'image_path':im_path, 
