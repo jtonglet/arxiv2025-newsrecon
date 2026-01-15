@@ -24,24 +24,6 @@ def art_text(url):
     return text
 
 
-def _build_url_to_abstract_or_headline(articles):
-    out = {}
-    for a in articles:
-        url = a.get("web_url")
-        if not url: 
-            continue
-        txt = None
-        if "abstract" in a:
-            txt = a["abstract"]
-        elif "fields" in a:
-            txt = a['fields']["headline"]
-        else:
-            print(a)
-        if txt:
-            out[url] = txt
-    return out
-
-
 @torch.no_grad()
 def encode_article_images(model, urls, resolver, processor, bs=128):
     feats, ids = [], []
@@ -395,7 +377,7 @@ if __name__=='__main__':
 )
     num_with_pos = sum(1 for it in train_ds.items if len(it["pos_urls"]) > 0)
 
-    #Prepare negatives
+    # Prepare negatives
     train_positive_urls = set()
     for img_url in time_url_map:
         train_positive_urls.update(time_url_map[img_url])
@@ -450,7 +432,7 @@ if __name__=='__main__':
                 used_cap_urls.add(pos_url)
                 forbidden.update(item["pos_urls"])
 
-            # 1) seed with M query images (non-conflicting positives)
+            # seed with M query images (non-conflicting positives)
             pool = batch[:]  # operate on a copy
             rng.shuffle(pool)
             for it in pool:
@@ -464,7 +446,7 @@ if __name__=='__main__':
                     continue
                 _add_query_item(it, u)
 
-            # 1b) if not enough, pull more from whole ds
+            # if not enough, pull more from whole ds
             if len(chosen_img_urls) < m_queries:
                 pool2 = ds.items[:]
                 rng.shuffle(pool2)
@@ -481,7 +463,7 @@ if __name__=='__main__':
                         continue
                     _add_query_item(it, u)
 
-            # 3) fill up with random negatives (article images only)
+            # fill up with random negatives (article images only)
             if len(imgs) < total_bs:
                 rand_pool = [u for u in ds.rand_neg_pool if (u not in used_cap_urls) and (u not in forbidden)]
                 rng.shuffle(rand_pool)

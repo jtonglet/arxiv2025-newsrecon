@@ -14,9 +14,7 @@ random.seed(SEED)
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_folder', type=str, default='data/processed_articles', 
-                        choices=['data/processed_articles', 'data/tara_articles'],
-                         help="Folder containing the article files")
+    parser.add_argument('--input_folder', type=str, default='data/processed_articles', choices=['data/processed_articles', 'data/tara_articles'], help="Folder containing the article files")
     parser.add_argument('--model', type=str, default='qwen2.5/7B/',  help="Name of the model to run")
     parser.add_argument('--use_vllm', type=int, default = 1, help="set to 1 to use vllm for inference")
     parser.add_argument('--batch_size', type=int, default = 64, help="Number of prompts to instances to provide to the llm in one batch")
