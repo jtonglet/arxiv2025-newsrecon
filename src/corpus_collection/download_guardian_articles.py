@@ -271,6 +271,16 @@ if __name__=='__main__':
         json.dump(results, file, indent=4)
         results = []
 
+    #Get a set of all unique locations in the NYT corpus, use it as a reference later to get keywords from Guardian articles
+    unique_locs = []
+    nyt = []
+    for o in tqdm(os.listdir('processed_articles')):
+        if 'guardian' not in o:
+            nyt += load_json(f"processed_articles/{o}")
+    for n in nyt:
+        #Get the complete list of location keywords
+        unique_locs += [k['value'].split(' (')[0].lower() for k in n['keywords'] if k['name']=='glocations']
+    unique_locs = set(unique_locs)
 
     # Final filtering steps: remove duplicate URLs and articles without images
     for file in os.listdir('data/processed_articles/'):
@@ -283,18 +293,22 @@ if __name__=='__main__':
                 if guardian_data[d]['web_url'] not in web_urls_set:
                     #Remove duplicate URLs
                     new_entry = guardian_data[d]
-                    #Remove body to save storage  space
+                    #Remove body to save storage space
                     soup = BeautifulSoup(new_entry['fields']['body'], 'html.parser')
                     p_tags = soup.find_all('p')
                     # Get only the first 5 <p> tags of the article's body
                     first_five = p_tags[:5]
                     new_entry['fields']['body'] = "\n".join(str(tag) for tag in first_five)
-                    new_entry[d]['fields']['body'] = new_entry[d]['fields']['body'].replace('<p>','').replace('</p>', '')
-                    new_entry['image_url']  = find_url(guardian_data[d])
+                    new_entry['fields']['body'] = new_entry['fields']['body'].replace('<p>','').replace('</p>', '')
+                    new_entry['image_url']  = find_url(new_entry)
+                    #Add geolocation keywords
+                    loc_words = [t['webTitle'] for t in new_entry['tags'] if t['webTitle'].lower() in unique_locs]
+                    new_entry['keywords'] = []
+                    for l in loc_words:
+                        new_entry['keywords'].append({'name':'glocations', 'value': l})
                     if new_entry['image_url'] != '':
                         #Only include article if it has an image URL
                         new_entry['has_image'] = True
-
                         filtered_data.append(new_entry)
                     web_urls_set.add(guardian_data[d]['web_url'])
             
