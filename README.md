@@ -9,7 +9,7 @@ This code should only be used for **academic non-commercial research purposes**.
 
 Contact person: [Jonathan Tonglet](mailto:jonathan.tonglet@kuleuven.be) 
 
-Don't hesitate to send us an e-mail or report an issue, if something is broken (and it shouldn't be) or if you have further questions. 
+Don't hesitate to email us or report an issue if something is broken (and it shouldn't be) or if you have further questions. 
 
 ## Abstract
 
@@ -36,7 +36,7 @@ $ pip install -r requirements.txt
 
 The TARA dataset can be accessed by following the instructions in the [repo](https://github.com/zeyofu/TARA).
 
-Images can be downloaded by running thisscript
+Images can be downloaded by running this script
 
 ```python
 python download_tara_images.py
@@ -47,9 +47,9 @@ python download_tara_images.py
 The 5Pils-OOC dataset can be accessed by following the instructions in the [repo](https://github.com/UKPLab/naacl2025-cove).
 
 
-## News rticles corpus
+## News articles corpus
 
-You will find below the instructions to collect the article corpus that we used in our experiments.
+Below are the instructions for collecting the article corpus we used in our experiments.
 
 Before starting, you need to obtain your own API keys for the New York Times and The Guardian APIs. 
 Replace "YOUR_NYT_API_KEY" and "YOUR_GUARDIAN_API_KEY" in '''download_nyt_articles.py''' and '''download_guardian_articles.py''' by your own API keys, respectively.
@@ -57,7 +57,7 @@ Replace "YOUR_NYT_API_KEY" and "YOUR_GUARDIAN_API_KEY" in '''download_nyt_articl
 Then, run the following scripts as follows
 
 ```python
-# Download rticles
+# Download articles
 python download_nyt_articles.py
 python download_guardian_articles.py
 # Images
@@ -72,14 +72,14 @@ python caption_generation.py  --input_folder data/processed_articles
 python caption_generation.py  --input_folder data/tara_articles
 ```
 
-Important note: we cannot guarantee that the APIs will provide the exact same set of articles as the one obtained when conducting our experiments. The current scripts automatically remove articles that were not part of the original corpus. However, it cannot guarantee that the API will return all of the articles that were in the original corpus.
+Important note: we cannot guarantee that the APIs will return the exact same set of articles as obtained during our experiments. The current scripts automatically remove articles that were not part of the original corpus. However, it cannot guarantee that the API will return all the articles from the original corpus.
 
 ## Experiments
 
 ### Training NewsRECON
 
 ```python
-# Collect relevant articles sets for TARA train and dev set
+# Collect relevant article sets for the ARA train and dev set
 python get_relevant_articles_sets.py
 # Fine-tune the bi-encoder
 python bi_encoder_ft.py
