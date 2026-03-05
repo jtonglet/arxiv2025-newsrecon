@@ -38,7 +38,7 @@ The TARA dataset can be accessed by following the instructions in the [repo](htt
 
 Images can be downloaded by running this script
 
-```python
+```
 python download_tara_images.py
 ```
 
@@ -56,7 +56,7 @@ Replace "YOUR_NYT_API_KEY" and "YOUR_GUARDIAN_API_KEY" in '''download_nyt_articl
 
 Then, run the following scripts as follows
 
-```python
+```
 # Download articles
 python download_nyt_articles.py
 python download_guardian_articles.py
@@ -78,7 +78,7 @@ Important note: we cannot guarantee that the APIs will return the exact same set
 
 ### Training NewsRECON
 
-```python
+```
 # Collect relevant article sets for the ARA train and dev set
 python get_relevant_articles_sets.py
 # Fine-tune the bi-encoder
@@ -104,13 +104,13 @@ python retrieve_top_k_articles.py --method biencoder_then_time_ce_cluster_rerank
 
 To evaluate the MLLM in zero-shot without external evidence, you can use: 
 
-```python
+```
 python question_answering.py --dataset tara
 ```
 
 To evaluate the MLLM combined with evidence retrieved by NewsRECON (or another retrieval model of your choice), you can use:
 
-```python
+```
 python question_answering.py --dataset tara  --evidence_file YOUR_EVIDENCE_FILE_PATH 
 ```
 
@@ -121,13 +121,13 @@ For this, you need to obtain your own API keys.
 
 Then, run the following script
 
-```python
+```
 python celebrity_detection.py
 ```
 
 You can add the celebrity metadata by changing the prompt type during question answering
 
-```python
+```
 python question_answering.py --dataset tara  --prompt celebrity
 ```
 
