@@ -151,11 +151,11 @@ If you find this work relevant to your research or use this code in your work, p
 ```bibtex 
 @article{tonglet2026newsrecon,
   title={NewsRECON: News article REtrieval for image CONtextualization},
-  author={Tonglet, Jonathan and and Gurevych, Iryna and Tuytelaars, Tinne and Moens, Marie-Francine},
-  journal={arXiv preprint arXiv:XXXX.XXXX},
+  author={Tonglet, Jonathan and Gurevych, Iryna and Tuytelaars, Tinne and Moens, Marie-Francine},
+  journal={arXiv preprint arXiv:2601.14121},
   year={2026},
-  url={https://arxiv.org/abs/XXXX.XXXX},
-  doi={10.48550/arXiv.XXXX.XXXX}
+  url={https://arxiv.org/abs/2601.14121},
+  doi={10.48550/arXiv.2601.14121}
 }
 ```
 
